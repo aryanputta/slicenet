@@ -10,13 +10,13 @@ This maps directly to real-world VoIP resilience under lossy networks.
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import logging
-logging.basicConfig(level=logging.WARNING)
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from slicenet.engine import SliceNetEngine
 
+logging.basicConfig(level=logging.WARNING)
 
 def run(high_loss: float = 0.05) -> None:
     print("\n[Packet Loss Spike Scenario]")
@@ -50,8 +50,8 @@ def run(high_loss: float = 0.05) -> None:
         print(f"    Baseline  p95={base_lat.get('p95_ms', 0):.2f}ms  loss={base_loss*100:.3f}%")
         print(f"    High Loss p95={high_lat.get('p95_ms', 0):.2f}ms  loss={high_loss_val*100:.3f}%  (loss={high_loss*100:.0f}% injected)")
 
-    print(f"\n  TCP flows impacted by cwnd collapse — slow start recovery visible")
-    print(f"  UDP flows maintain transmission — loss degrades quality, not continuity")
+    print("\n  TCP flows impacted by cwnd collapse — slow start recovery visible")
+    print("  UDP flows maintain transmission — loss degrades quality, not continuity")
 
     tcp_states = engine_high._tcp.snapshot()
     if tcp_states:

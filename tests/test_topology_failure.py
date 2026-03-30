@@ -13,7 +13,7 @@ Coverage:
 """
 
 import pytest
-from slicenet.topology.network import FaultTolerantTopology, Path
+from slicenet.topology.network import FaultTolerantTopology
 
 
 # ---------------------------------------------------------------------------

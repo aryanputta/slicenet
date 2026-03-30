@@ -12,7 +12,6 @@ Output: benchmarks/results/benchmark_results.json
 from __future__ import annotations
 import json
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -98,7 +97,7 @@ def print_comparison_table(results: Dict[str, dict]) -> None:
                 row += f"{val:>12.2f}"
             print(row)
 
-    print(f"\n--- Packet Loss Rate (%) ---")
+    print("\n--- Packet Loss Rate (%) ---")
     header = f"{'Slice':<15}" + "".join(f"{s:>12}" for s in SCHEDULERS)
     print(header)
     print("-" * len(header))
@@ -109,7 +108,7 @@ def print_comparison_table(results: Dict[str, dict]) -> None:
             row += f"{val:>12.3f}"
         print(row)
 
-    print(f"\n--- System Metrics ---")
+    print("\n--- System Metrics ---")
     for sched in SCHEDULERS:
         r = results[sched]
         print(
@@ -158,7 +157,7 @@ def try_plot(results: Dict[str, dict]) -> None:
     # Plot 2: Fairness index
     ax2 = fig.add_subplot(gs[0, 2])
     fair_vals = [results[s].get("jains_fairness_index", 0) for s in SCHEDULERS]
-    bars = ax2.bar(SCHEDULERS, fair_vals, color=[colors[s] for s in SCHEDULERS], alpha=0.85)
+    ax2.bar(SCHEDULERS, fair_vals, color=[colors[s] for s in SCHEDULERS], alpha=0.85)
     ax2.set_ylim(0, 1.05)
     ax2.set_ylabel("Jain's Fairness Index")
     ax2.set_title("Fairness (higher = better)")
@@ -170,7 +169,7 @@ def try_plot(results: Dict[str, dict]) -> None:
         results[s]["slices"].get("voip", {}).get("latency", {}).get("p99_ms", 0)
         for s in SCHEDULERS
     ]
-    bars3 = ax3.bar(SCHEDULERS, voip_p99, color=[colors[s] for s in SCHEDULERS], alpha=0.85)
+    ax3.bar(SCHEDULERS, voip_p99, color=[colors[s] for s in SCHEDULERS], alpha=0.85)
     ax3.axhline(y=20.0, color="red", linestyle="--", linewidth=1.5, label="SLA (20ms)")
     ax3.set_ylabel("VoIP p99 Latency (ms)")
     ax3.set_title("VoIP SLA Compliance")

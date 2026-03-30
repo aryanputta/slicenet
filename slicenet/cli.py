@@ -155,7 +155,7 @@ def _cmd_topo(args: argparse.Namespace) -> None:
         print()
 
     # Simulate a link failure and show rerouting
-    print(f"  [Failure] Failing upf_edge → upf_core ...")
+    print("  [Failure] Failing upf_edge → upf_core ...")
     topo.fail_link("upf_edge", "upf_core")
     path_after = topo.shortest_path("ue", "dn")
     if path_after:
@@ -165,7 +165,7 @@ def _cmd_topo(args: argparse.Namespace) -> None:
         print("  ue → dn: UNREACHABLE after failure")
 
     topo.recover_link("upf_edge", "upf_core")
-    print(f"  [Recovery] Link restored")
+    print("  [Recovery] Link restored")
     path_recovered = topo.shortest_path("ue", "dn")
     if path_recovered:
         print(f"  ue → dn restored: {' → '.join(path_recovered.nodes)}")

@@ -10,9 +10,10 @@ import logging
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
 from slicenet.engine import SliceNetEngine
+
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
 
 BANNER = """

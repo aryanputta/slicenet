@@ -11,13 +11,13 @@ Expected outcome:
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import logging
-logging.basicConfig(level=logging.WARNING)
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from slicenet.engine import SliceNetEngine
 
+logging.basicConfig(level=logging.WARNING)
 VOIP_SLA_MS = 20.0
 
 

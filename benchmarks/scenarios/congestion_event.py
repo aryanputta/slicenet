@@ -12,13 +12,13 @@ Stages:
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import logging
-logging.basicConfig(level=logging.WARNING)
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from slicenet.engine import SliceNetEngine
 
+logging.basicConfig(level=logging.WARNING)
 
 def run(scheduler: str = "adaptive") -> None:
     print(f"\n[Congestion Event Scenario — {scheduler.upper()}]")

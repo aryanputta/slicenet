@@ -15,20 +15,21 @@ data-parallel workloads.
 """
 
 from __future__ import annotations
+import logging
 import sys
 import time
-import logging
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-logging.basicConfig(level=logging.WARNING)
 
 import numpy as np
 
-from slicenet.gpu.cuda_pipeline import CUDAPacketPipeline, PacketBatch, WARP_SIZE, THREADS_PER_BLOCK
 from slicenet.gpu.bluefield_dpu import BlueFieldDPU
+from slicenet.gpu.cuda_pipeline import CUDAPacketPipeline, PacketBatch, WARP_SIZE
 from slicenet.gpu.dpdk_engine import DPDKEngine
 from slicenet.traffic.generator import TrafficGenerator
+
+logging.basicConfig(level=logging.WARNING)
 
 
 def make_batch(n: int) -> PacketBatch:
@@ -103,8 +104,8 @@ def bench_classify(batch_sizes=(32, 256, 1024, 4096, 16384, 65536)):
 
         print(f"  {n:>12,} {cpu_us:>10.1f} {gpu_us:>10.2f} {speedup:>9.1f}x {cpu_mpps:>10.2f} {gpu_mpps:>10.2f}")
 
-    print(f"\n  Note: NumPy vectorization mirrors CUDA warp-level SIMD.")
-    print(f"  Real GPU with CUDA kernels would achieve 100M-600M pps.")
+    print("\n  Note: NumPy vectorization mirrors CUDA warp-level SIMD.")
+    print("  Real GPU with CUDA kernels would achieve 100M-600M pps.")
 
 
 def bench_full_pipeline(batch_sizes=(32, 256, 1024, 8192)):
@@ -118,7 +119,6 @@ def bench_full_pipeline(batch_sizes=(32, 256, 1024, 8192)):
 
     for n in batch_sizes:
         pipeline = CUDAPacketPipeline()
-        batch = make_batch(n)
         warps = (n + WARP_SIZE - 1) // WARP_SIZE
 
         t0 = time.perf_counter()
@@ -131,7 +131,7 @@ def bench_full_pipeline(batch_sizes=(32, 256, 1024, 8192)):
         print(f"  {n:>12,} {elapsed_us:>14.1f} {mpps:>17.2f} {warps:>8}")
 
     stats = pipeline.throughput_stats()
-    print(f"\n  Per-kernel avg latency:")
+    print("\n  Per-kernel avg latency:")
     print(f"    classify_kernel: {stats['avg_classify_us']:.3f} µs")
     print(f"    admit_kernel:    {stats['avg_admit_us']:.3f} µs")
     print(f"    sort_kernel:     {stats['avg_sort_us']:.3f} µs")
@@ -175,7 +175,6 @@ def bench_dpdk_vs_interrupt(packet_counts=(100, 1000, 10000)):
         speedup = interrupt_us / max(dpdk_us, 1e-9)
         print(f"  {n:>12,} {interrupt_us:>14.1f} {dpdk_us:>16.1f} {speedup:>9.1f}x")
 
-    stats = dpdk.stats()
     print(f"\n  DPDK PMD efficiency: {dpdk.pmd_efficiency():.1%}")
     print(f"  RSS balance: {dpdk.rss.balance_stats()}")
 
@@ -192,7 +191,6 @@ def bench_bluefield_doca(n: int = 10000):
     slice_ids = rng.integers(0, 4, size=n, dtype=np.int32)
     protocols = rng.integers(1, 3, size=n, dtype=np.int8)
     sizes = rng.integers(64, 1500, size=n, dtype=np.int32)
-    admit_mask = np.ones(n, dtype=bool)
 
     t0 = time.perf_counter()
     for _ in range(10):
@@ -209,11 +207,11 @@ def bench_bluefield_doca(n: int = 10000):
     print(f"  Admitted         : {admitted:,}  Dropped: {dropped:,}")
 
     stats = dpu.stats()
-    print(f"\n  DOCA Flow hits per rule:")
+    print("\n  DOCA Flow hits per rule:")
     for entry_id, hits in stats["doca_flow_hits"].items():
         print(f"    {entry_id}: {hits:,}")
 
-    print(f"\n  TM utilization per slice:")
+    print("\n  TM utilization per slice:")
     for sid, tm in stats["traffic_manager"].items():
         print(f"    {sid:<15}: {tm['utilization']*100:.2f}%  (BW guarantee: {tm['bw_guarantee_mbps']} Mbps)")
 
