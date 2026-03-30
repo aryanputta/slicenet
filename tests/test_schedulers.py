@@ -384,8 +384,8 @@ class TestREDQueueManager:
         We pre-warm the EWMA by feeding a high weight so avg_queue converges quickly,
         then verify that all subsequent arrivals are hard-dropped.
         """
-        red = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=1.0)
-        # weight=1.0 → avg_queue == current_queue_len immediately
+        red = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=0.999)
+        # weight=0.999 → avg_queue == current_queue_len immediately
         drops = sum(1 for _ in range(100) if red.should_drop(700))
         assert drops == 100
 
@@ -395,8 +395,8 @@ class TestREDQueueManager:
         dropped and some should pass (probabilistic, not deterministic).
         We force avg_queue into the zone by setting it directly.
         """
-        red = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=1.0)
-        # weight=1.0 → avg_queue = current_queue_len immediately
+        red = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=0.999)
+        # weight=0.999 → avg_queue = current_queue_len immediately
         n = 1000
         random.seed(42)
         drops = sum(1 for _ in range(n) if red.should_drop(400))
@@ -405,8 +405,8 @@ class TestREDQueueManager:
 
     def test_drop_rate_increases_with_queue_depth(self):
         """Packets reported at higher queue depth should yield higher drop rates."""
-        red_low = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=1.0)
-        red_high = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=1.0)
+        red_low = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=0.999)
+        red_high = REDQueueManager(min_thresh=200, max_thresh=600, max_prob=0.1, weight=0.999)
 
         n = 500
         random.seed(0)

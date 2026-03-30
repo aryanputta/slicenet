@@ -45,8 +45,14 @@ class REDQueueManager:
             weight:     EWMA coefficient for average queue estimate (0 < w < 1)
             name:       Identifier for logging
         """
+        if min_thresh <= 0 or max_thresh <= 0:
+            raise ValueError("min_thresh and max_thresh must be positive")
         if min_thresh >= max_thresh:
             raise ValueError("min_thresh must be < max_thresh")
+        if not (0.0 < max_prob <= 1.0):
+            raise ValueError("max_prob must be in (0, 1]")
+        if not (0.0 < weight < 1.0):
+            raise ValueError("weight must be in (0, 1)")
         self.min_thresh = min_thresh
         self.max_thresh = max_thresh
         self.max_prob = max_prob
@@ -101,7 +107,8 @@ class REDQueueManager:
 
         # Gentle RED: increase probability with consecutive non-drops
         self._count += 1
-        p_a = p_b / (1.0 - self._count * p_b) if (1.0 - self._count * p_b) > 0 else p_b
+        denominator = max(1e-9, 1.0 - self._count * p_b)
+        p_a = min(1.0, p_b / denominator)
 
         if random.random() < p_a:
             self._count = 0

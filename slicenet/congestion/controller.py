@@ -79,9 +79,10 @@ class CongestionController:
         self._states: Dict[str, SliceCongestionState] = {}
         self._queue_sizes = queue_sizes  # current queue lengths (updated externally)
 
+        _MAX_BURST_BYTES = 1_000_000  # 1 MB hard cap
         for slice_id, rate_mbps in BANDWIDTH_GUARANTEE_MBPS.items():
             burst = int(rate_mbps * 1e6 / 8 * 0.1)  # 100ms burst budget
-            burst = max(burst, TOKEN_BUCKET_MAX_BURST)
+            burst = max(TOKEN_BUCKET_MAX_BURST, min(burst, _MAX_BURST_BYTES))
             self._states[slice_id] = SliceCongestionState(
                 slice_id=slice_id,
                 rate_mbps=rate_mbps * 2.0,  # allow 2x guarantee before limiting

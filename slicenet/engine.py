@@ -68,6 +68,17 @@ class SliceNetEngine:
         udp_loss_rate: float = 0.005,
         link_capacity_mbps: float = 100.0,
     ):
+        if not (0.0 <= load_factor <= 1.0):
+            raise ValueError(f"load_factor must be in [0.0, 1.0], got {load_factor}")
+        if not (0.0 <= tcp_loss_rate <= 1.0):
+            raise ValueError(f"tcp_loss_rate must be in [0.0, 1.0], got {tcp_loss_rate}")
+        if not (0.0 <= udp_loss_rate <= 1.0):
+            raise ValueError(f"udp_loss_rate must be in [0.0, 1.0], got {udp_loss_rate}")
+        if link_capacity_mbps <= 0:
+            raise ValueError(f"link_capacity_mbps must be positive, got {link_capacity_mbps}")
+        if scheduler not in SCHEDULER_MAP:
+            raise ValueError(f"Unknown scheduler '{scheduler}'. Valid: {list(SCHEDULER_MAP.keys())}")
+
         self.link_capacity_mbps = link_capacity_mbps
         self._tick_count: int = 0
         self._total_transmitted: int = 0
@@ -89,7 +100,7 @@ class SliceNetEngine:
         self._congestion = CongestionController(queue_sizes={sid: 0 for sid in slice_ids})
 
         # Scheduler
-        sched_cls = SCHEDULER_MAP.get(scheduler, AdaptiveScheduler)
+        sched_cls = SCHEDULER_MAP[scheduler]
         self._scheduler: SchedulerType = sched_cls()
         logger.info("Engine initialized with %s scheduler", scheduler)
 

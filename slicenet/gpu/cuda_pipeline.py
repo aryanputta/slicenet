@@ -86,7 +86,7 @@ class PacketBatch:
     def empty(cls, capacity: int) -> "PacketBatch":
         return cls(
             n=0,
-            sizes=np.zeros(capacity, dtype=np.int32),
+            sizes=np.zeros(capacity, dtype=np.int64),
             traffic_classes=np.zeros(capacity, dtype=np.int32),
             protocols=np.zeros(capacity, dtype=np.int8),
             priorities=np.zeros(capacity, dtype=np.int32),
