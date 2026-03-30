@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import heapq
 import math
+import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -302,3 +303,301 @@ class NetworkTopology:
             "links": sum(len(v) for v in self._links.values()),
             "node_ids": sorted(self._nodes.keys()),
         }
+
+
+# ---------------------------------------------------------------------------
+# Link failure simulation and live rerouting
+# ---------------------------------------------------------------------------
+
+class LinkFailureEvent:
+    """Records a link failure and its recovery."""
+    def __init__(self, src: str, dst: str, failed_at_ms: float):
+        self.src = src
+        self.dst = dst
+        self.failed_at_ms = failed_at_ms
+        self.recovered_at_ms: Optional[float] = None
+
+    @property
+    def duration_ms(self) -> Optional[float]:
+        if self.recovered_at_ms is None:
+            return None
+        return self.recovered_at_ms - self.failed_at_ms
+
+    def __repr__(self) -> str:
+        return (
+            f"LinkFailureEvent({self.src}->{self.dst}, "
+            f"at={self.failed_at_ms:.1f}ms, "
+            f"recovered={self.recovered_at_ms})"
+        )
+
+
+class LinkUtilization:
+    """Tracks bytes and packets transmitted over a link."""
+    __slots__ = ["bytes_transmitted", "packets_transmitted", "drops"]
+
+    def __init__(self) -> None:
+        self.bytes_transmitted: int = 0
+        self.packets_transmitted: int = 0
+        self.drops: int = 0
+
+    def record(self, pkt_bytes: int) -> None:
+        self.bytes_transmitted += pkt_bytes
+        self.packets_transmitted += 1
+
+    def record_drop(self) -> None:
+        self.drops += 1
+
+    def utilization_ratio(self, link: "Link", elapsed_s: float) -> float:
+        """Fraction of link capacity used over elapsed_s seconds."""
+        if elapsed_s <= 0 or link.bandwidth_bps <= 0:
+            return 0.0
+        actual_bps = (self.bytes_transmitted * 8) / elapsed_s
+        return min(actual_bps / link.bandwidth_bps, 1.0)
+
+
+class FaultTolerantTopology(NetworkTopology):
+    """
+    NetworkTopology extended with:
+      - Per-link failure injection and auto-recovery
+      - Automatic Dijkstra rerouting around failed links
+      - Per-link utilization counters
+      - Convergence time measurement (time from failure to new path)
+    """
+
+    def __init__(self, name: str = "topology"):
+        super().__init__(name)
+        self._failed_links: Set[Tuple[str, str]] = set()
+        self._failure_log: list[LinkFailureEvent] = []
+        self._utilization: Dict[Tuple[str, str], LinkUtilization] = {}
+        self._start_time_s: float = time.monotonic()
+        # Cache: (src, dst) -> Path, invalidated on failure/recovery
+        self._path_cache: Dict[Tuple[str, str], Optional[Path]] = {}
+
+    # ------------------------------------------------------------------
+    # Link failure API
+    # ------------------------------------------------------------------
+
+    def fail_link(self, src: str, dst: str, bidirectional: bool = True) -> None:
+        """
+        Mark a link as failed. Future shortest-path calls will route around it.
+        Bidirectional failure mirrors real physical link cuts.
+        """
+        pairs = [(src, dst)]
+        if bidirectional:
+            pairs.append((dst, src))
+        for s, d in pairs:
+            if (s, d) in self._link_index:
+                self._failed_links.add((s, d))
+                now_ms = (time.monotonic() - self._start_time_s) * 1000.0
+                self._failure_log.append(LinkFailureEvent(s, d, now_ms))
+        self._path_cache.clear()
+
+    def recover_link(self, src: str, dst: str, bidirectional: bool = True) -> None:
+        """
+        Restore a previously failed link.
+        Clears path cache so rerouting reverts to optimal paths.
+        """
+        pairs = [(src, dst)]
+        if bidirectional:
+            pairs.append((dst, src))
+        now_ms = (time.monotonic() - self._start_time_s) * 1000.0
+        for s, d in pairs:
+            self._failed_links.discard((s, d))
+            # Record recovery time on the most recent matching event
+            for ev in reversed(self._failure_log):
+                if ev.src == s and ev.dst == d and ev.recovered_at_ms is None:
+                    ev.recovered_at_ms = now_ms
+                    break
+        self._path_cache.clear()
+
+    def is_failed(self, src: str, dst: str) -> bool:
+        return (src, dst) in self._failed_links
+
+    def failed_links(self) -> list[Tuple[str, str]]:
+        return list(self._failed_links)
+
+    # ------------------------------------------------------------------
+    # Override shortest_path to exclude failed links
+    # ------------------------------------------------------------------
+
+    def _active_links(self, node_id: str) -> list[Link]:
+        """Return outgoing links from node_id that are not currently failed."""
+        return [
+            lnk for lnk in self._links.get(node_id, [])
+            if (lnk.src, lnk.dst) not in self._failed_links
+        ]
+
+    def shortest_path(self, src: str, dst: str) -> Optional[Path]:
+        """Dijkstra over active (non-failed) links. Results are cached."""
+        cache_key = (src, dst)
+        if cache_key in self._path_cache:
+            return self._path_cache[cache_key]
+
+        if src not in self._nodes or dst not in self._nodes:
+            self._path_cache[cache_key] = None
+            return None
+        if src == dst:
+            result = Path(nodes=[src], links=[])
+            self._path_cache[cache_key] = result
+            return result
+
+        dist: Dict[str, float] = {n: math.inf for n in self._nodes}
+        prev_link: Dict[str, Optional[Link]] = {n: None for n in self._nodes}
+        dist[src] = 0.0
+        heap: List[Tuple[float, str]] = [(0.0, src)]
+
+        while heap:
+            d, u = heapq.heappop(heap)
+            if d > dist[u]:
+                continue
+            if u == dst:
+                break
+            for link in self._active_links(u):
+                alt = dist[u] + link.propagation_delay_ms
+                if alt < dist[link.dst]:
+                    dist[link.dst] = alt
+                    prev_link[link.dst] = link
+                    heapq.heappush(heap, (alt, link.dst))
+
+        if math.isinf(dist[dst]):
+            self._path_cache[cache_key] = None
+            return None
+
+        links: List[Link] = []
+        cur = dst
+        while prev_link[cur] is not None:
+            lnk = prev_link[cur]
+            links.append(lnk)
+            cur = lnk.src
+        links.reverse()
+
+        result = Path(nodes=[src] + [lnk.dst for lnk in links], links=links)
+        self._path_cache[cache_key] = result
+        return result
+
+    def ecmp_paths(self, src: str, dst: str) -> List[Path]:
+        """ECMP over active links only."""
+        sp = self.shortest_path(src, dst)
+        if sp is None:
+            return []
+
+        target_delay = sp.total_propagation_delay_ms
+        dist: Dict[str, float] = {n: math.inf for n in self._nodes}
+        dist[src] = 0.0
+        heap: List[Tuple[float, str]] = [(0.0, src)]
+
+        while heap:
+            d, u = heapq.heappop(heap)
+            if d > dist[u]:
+                continue
+            for link in self._active_links(u):
+                alt = dist[u] + link.propagation_delay_ms
+                if alt < dist[link.dst]:
+                    dist[link.dst] = alt
+                    heapq.heappush(heap, (alt, link.dst))
+
+        all_paths: List[Path] = []
+
+        def dfs(
+            cur: str,
+            path_nodes: List[str],
+            path_links: List[Link],
+            visited: Set[str],
+        ) -> None:
+            if cur == dst:
+                total = sum(lk.propagation_delay_ms for lk in path_links)
+                if abs(total - target_delay) < 1e-9:
+                    all_paths.append(
+                        Path(nodes=list(path_nodes), links=list(path_links))
+                    )
+                return
+            for link in self._active_links(cur):
+                nxt = link.dst
+                if nxt in visited:
+                    continue
+                if abs(dist[cur] + link.propagation_delay_ms - dist[nxt]) < 1e-9:
+                    visited.add(nxt)
+                    path_nodes.append(nxt)
+                    path_links.append(link)
+                    dfs(nxt, path_nodes, path_links, visited)
+                    path_nodes.pop()
+                    path_links.pop()
+                    visited.discard(nxt)
+
+        dfs(src, [src], [], {src})
+        return all_paths
+
+    # ------------------------------------------------------------------
+    # Utilization tracking
+    # ------------------------------------------------------------------
+
+    def record_transmission(self, src: str, dst: str, pkt_bytes: int) -> None:
+        """Record a packet crossing link (src→dst)."""
+        key = (src, dst)
+        if key not in self._utilization:
+            self._utilization[key] = LinkUtilization()
+        self._utilization[key].record(pkt_bytes)
+
+    def record_drop(self, src: str, dst: str) -> None:
+        key = (src, dst)
+        if key not in self._utilization:
+            self._utilization[key] = LinkUtilization()
+        self._utilization[key].record_drop()
+
+    def link_utilization(self) -> Dict[str, dict]:
+        """Return per-link utilization stats."""
+        elapsed_s = max(time.monotonic() - self._start_time_s, 0.001)
+        result = {}
+        for (src, dst), util in self._utilization.items():
+            link = self._link_index.get((src, dst))
+            ratio = util.utilization_ratio(link, elapsed_s) if link else 0.0
+            result[f"{src}->{dst}"] = {
+                "bytes": util.bytes_transmitted,
+                "packets": util.packets_transmitted,
+                "drops": util.drops,
+                "utilization_pct": round(ratio * 100, 2),
+                "failed": (src, dst) in self._failed_links,
+            }
+        return result
+
+    # ------------------------------------------------------------------
+    # Convergence time
+    # ------------------------------------------------------------------
+
+    def convergence_ms(self, src: str, dst: str) -> Optional[float]:
+        """
+        Time from the most recent link failure on the (src, dst) path to when
+        a valid alternate path became available (i.e., now, since re-routing
+        in this implementation is instantaneous Dijkstra recomputation).
+
+        Returns the failure duration (ms) if currently failed, else None.
+        """
+        for ev in reversed(self._failure_log):
+            if ev.src == src and ev.dst == dst and ev.recovered_at_ms is None:
+                now_ms = (time.monotonic() - self._start_time_s) * 1000.0
+                return now_ms - ev.failed_at_ms
+        return None
+
+    def failure_log(self) -> list[dict]:
+        return [
+            {
+                "src": ev.src,
+                "dst": ev.dst,
+                "failed_at_ms": round(ev.failed_at_ms, 2),
+                "recovered_at_ms": (
+                    round(ev.recovered_at_ms, 2)
+                    if ev.recovered_at_ms is not None else None
+                ),
+                "duration_ms": (
+                    round(ev.duration_ms, 2)
+                    if ev.duration_ms is not None else None
+                ),
+            }
+            for ev in self._failure_log
+        ]
+
+    def summary(self) -> dict:
+        base = super().summary()
+        base["failed_links"] = len(self._failed_links)
+        base["failure_events"] = len(self._failure_log)
+        return base
