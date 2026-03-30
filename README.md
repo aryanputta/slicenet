@@ -1,6 +1,6 @@
 # SliceNet: High-Performance QoS-Aware Network Slicing Engine
 
-A systems-level network simulation engine implementing production-grade traffic control concepts used at Cisco, Verizon, AWS, and NVIDIA Networking. Not a toy — models real TCP/IP behavior, telecom QoS policies, multiple packet scheduling algorithms, a live REST + WebSocket control plane, and Prometheus observability — with benchmarked results.
+A systems-level network simulation engine implementing production-grade traffic control concepts used real TCP/IP behavior, telecom QoS policies, multiple packet scheduling algorithms, a live REST + WebSocket control plane, and Prometheus observability — with benchmarked results.
 
 ---
 
