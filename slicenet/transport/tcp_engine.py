@@ -15,15 +15,14 @@ This is a discrete-event simulation — not a raw socket layer.
 
 from __future__ import annotations
 import logging
-import time
 import random
 from collections import deque
-from typing import Callable, Deque, Dict, List, Optional, Tuple
+from typing import Deque, Dict, List, Optional, Tuple
 
-from slicenet.core.packet import Flow, Packet, PacketState, Protocol, TrafficClass
+from slicenet.core.packet import Packet
 from slicenet.core.constants import (
     TCP_MSS, TCP_INITIAL_CWND, TCP_MAX_CWND, TCP_SSTHRESH_INIT,
-    TCP_MIN_RTO_MS, TCP_RETRANSMIT_LIMIT, MTU_BYTES
+    TCP_MIN_RTO_MS
 )
 
 logger = logging.getLogger(__name__)

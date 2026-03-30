@@ -23,9 +23,8 @@ This module:
 
 from __future__ import annotations
 import logging
-import time
 from collections import deque
-from typing import Deque, Dict, List, Optional, Tuple
+from typing import Deque, Dict, List
 
 import numpy as np
 

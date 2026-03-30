@@ -21,10 +21,8 @@ the CUBIC window, CUBIC falls back to W_est to remain TCP-friendly.
 
 from __future__ import annotations
 
-import math
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 # RFC 8312 constants

@@ -15,11 +15,11 @@ Real-world analog: DSCP-based priority queuing in Cisco QoS.
 from __future__ import annotations
 import logging
 from collections import deque
-from typing import Deque, Dict, List, Optional, Tuple
+from typing import Deque, List, Optional
 
 from slicenet.core.packet import Packet
 from slicenet.core.constants import (
-    PRIORITY_CRITICAL, PRIORITY_BEST_EFFORT, MAX_QUEUE_SIZE
+    PRIORITY_BEST_EFFORT, MAX_QUEUE_SIZE
 )
 
 logger = logging.getLogger(__name__)

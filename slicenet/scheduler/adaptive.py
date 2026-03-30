@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from typing import Deque, Dict, Optional, Tuple
+from typing import Deque, Dict, Optional
 
 from slicenet.scheduler.wfq import WFQScheduler
 from slicenet.scheduler.drr import DRRScheduler

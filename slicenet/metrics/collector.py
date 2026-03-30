@@ -18,11 +18,11 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from typing import Deque, Dict, List, Optional, Tuple
+from typing import Deque, Dict, List, Tuple
 
 import numpy as np
 
-from slicenet.core.constants import METRICS_WINDOW_SIZE, METRICS_PERCENTILES, LATENCY_SLA_MS
+from slicenet.core.constants import METRICS_WINDOW_SIZE, LATENCY_SLA_MS
 
 logger = logging.getLogger(__name__)
 

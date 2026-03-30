@@ -16,12 +16,12 @@ import logging
 import random
 import time
 import uuid
-from dataclasses import dataclass, field
-from typing import Dict, Iterator, List, Optional
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 from slicenet.core.packet import Packet, Protocol, TrafficClass
 from slicenet.core.constants import (
-    TCP_MSS, MTU_BYTES, SLICE_PRIORITY_MAP, TRAFFIC_SLICE_MAP
+    TCP_MSS, SLICE_PRIORITY_MAP, TRAFFIC_SLICE_MAP
 )
 
 logger = logging.getLogger(__name__)

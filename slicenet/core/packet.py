@@ -157,7 +157,7 @@ class Flow:
         Update cwnd on ACK receipt.
         Implements slow start and congestion avoidance (RFC 5681).
         """
-        from slicenet.core.constants import TCP_MSS, TCP_MAX_CWND
+        from slicenet.core.constants import TCP_MAX_CWND
         self.bytes_acked += acked_bytes
         if self.unacked_packets > 0:
             self.unacked_packets -= 1

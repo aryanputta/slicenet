@@ -42,10 +42,8 @@ This simulation models the architectural behavior, not raw speed.
 
 from __future__ import annotations
 import logging
-import time
-from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 

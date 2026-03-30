@@ -18,7 +18,7 @@ This approximates GPS (Generalized Processor Sharing) for packet networks.
 from __future__ import annotations
 import heapq
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from slicenet.core.packet import Packet
 from slicenet.core.constants import SLICE_WEIGHT_MAP, MAX_QUEUE_SIZE

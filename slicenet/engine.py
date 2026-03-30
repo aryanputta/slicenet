@@ -16,9 +16,8 @@ Supports parallel packet processing via NumPy batching (GPU-inspired).
 from __future__ import annotations
 import logging
 import time
-from typing import Dict, List, Optional, Type, Union
+from typing import Dict, List, Union
 
-import numpy as np
 
 from slicenet.core.packet import Packet, Protocol
 from slicenet.core.slice import NetworkSlice, build_default_slices
@@ -173,10 +172,6 @@ class SliceNetEngine:
 
         admitted = 0
         dropped = 0
-
-        # NumPy batch: compute total size for capacity check
-        sizes = np.array([p.size_bytes for p in packets], dtype=np.int32)
-        total_bytes = int(sizes.sum())
 
         for packet in packets:
             # Transport-layer decision

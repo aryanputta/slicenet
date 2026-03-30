@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict
 
 from slicenet.core.constants import (
     LATENCY_SLA_MS, BANDWIDTH_GUARANTEE_MBPS, SLICE_PRIORITY_MAP,

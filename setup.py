@@ -6,5 +6,8 @@ setup(
     packages=find_packages(),
     python_requires=">=3.10",
     install_requires=["numpy>=1.24.0"],
-    extras_require={"plots": ["matplotlib>=3.7.0"]},
+    extras_require={
+        "plots": ["matplotlib>=3.7.0"],
+        "dev": ["pytest>=7.0", "ruff>=0.4.0"],
+    },
 )
